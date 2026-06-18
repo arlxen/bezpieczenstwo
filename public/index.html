@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OAuth 2.0 PKCE Secure App</title>
+  <!-- modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-main: #0b0f17;
+      --bg-card: rgba(22, 28, 45, 0.4);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-glow: rgba(79, 70, 229, 0.15);
+      
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.15);
+      
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.15);
+      
+      --warning: #f59e0b;
+      --accent: #06b6d4;
+    }
+    
+    * {
+      box-sizing: border-box;
+      transition: all 0.2s ease-in-out;
+    }
+    
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 40%);
+    }
+    
+    header {
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.25rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .logo-icon {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: white;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, #ffffff, #9ca3af);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .status-badge {
+      padding: 0.375rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid var(--border-color);
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .status-unauth {
+      background-color: var(--danger-glow);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+    .status-unauth .status-dot {
+      background-color: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+    }
+    
+    .status-auth {
+      background-color: var(--success-glow);
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+    .status-auth .status-dot {
+      background-color: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+    
+    main {
+      max-width: 1280px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 2rem;
+    }
+    
+    @media (max-width: 968px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      margin-bottom: 2rem;
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #ffffff;
+    }
+    
+    .btn {
+      font-family: inherit;
+      padding: 0.625rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border: 1px solid transparent;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+    
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--text-muted);
+    }
+    
+    .btn-api {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: var(--border-color);
+      color: var(--text-main);
+      text-align: left;
+      justify-content: flex-start;
+      width: 100%;
+      padding: 0.875rem 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .btn-api:hover {
+      background: rgba(79, 70, 229, 0.08);
+      border-color: rgba(79, 70, 229, 0.4);
+      transform: translateX(4px);
+    }
+    
+    .btn-api .method {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .btn-api.unsecured .method {
+      color: var(--success);
+      background: var(--success-glow);
+    }
+    
+    .btn-api.secured .method {
+      color: var(--accent);
+      background: rgba(6, 182, 212, 0.15);
+    }
+    
+    .btn-api.role-based .method {
+      color: var(--warning);
+      background: rgba(245, 158, 11, 0.15);
+    }
+    
+    .btn-danger {
+      background: var(--danger-glow);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: var(--danger);
+    }
+    .btn-danger:hover {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .flow-step {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    
+    .flow-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 1rem;
+      top: 2rem;
+      bottom: -1rem;
+      width: 2px;
+      background: var(--border-color);
+      z-index: 1;
+    }
+    
+    .step-number {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    
+    .flow-step.active .step-number {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+    
+    .flow-step.completed .step-number {
+      background: var(--success-glow);
+      border-color: var(--success);
+      color: var(--success);
+    }
+    
+    .step-content {
+      padding-top: 0.25rem;
+    }
+    
+    .step-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    
+    .code-container {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      max-height: 250px;
+      color: #9299a4;
+    }
+    
+    .code-container code {
+      display: block;
+      white-space: pre-wrap;
+    }
+    
+    .highlight-val {
+      color: #f1fa8c;
+    }
+    
+    .highlight-key {
+      color: #ff79c6;
+    }
+    
+    .highlight-string {
+      color: #50fa7b;
+    }
+    
+    .highlight-token {
+      color: var(--accent);
+      word-break: break-all;
+    }
+    
+    .tab-container {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1rem;
+    }
+    
+    .tab {
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    
+    .user-info-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+    
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .user-name {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    
+    .user-role-badge {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(79, 70, 229, 0.2);
+      color: #a5b4fc;
+      align-self: flex-start;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    
+    .user-role-badge.admin {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fde047;
+    }
+    
+    .response-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+    
+    .status-ok {
+      background-color: var(--success-glow);
+      color: var(--success);
+    }
+    
+    .status-err {
+      background-color: var(--danger-glow);
+      color: var(--danger);
+    }
+    
+    .status-warn {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+    
+    .educational-box {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: var(--text-muted);
+    }
+    .educational-box p {
+      margin-top: 0;
+    }
+    .educational-box code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+      color: var(--accent);
+      font-size: 0.85rem;
+    }
+    
+    .educational-box strong {
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">🔑</div>
+      <div class="logo-text">OAuth 2.0 PKCE Demo</div>
+    </div>
+    <div id="connectionStatus" class="status-badge status-unauth">
+      <span class="status-dot"></span>
+      <span id="connectionText">Not Authenticated</span>
+    </div>
+  </header>
+  
+  <main>
+    <!-- Left Column: Flow & Action -->
+    <div>
+      <!-- Session / Authentication Panel -->
+      <div class="card">
+        <h3 class="card-title">🔐 User Authorization</h3>
+        
+        <div id="unauthPanel">
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0; margin-bottom: 1.5rem;">
+            Authenticate using standard OAuth 2.0 Authorization Code Flow with PKCE.
+            We have preloaded two users in the database:
+          </p>
+          <div style="font-size: 0.85rem; background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+            • Regular user: <code class="highlight-val">user</code> / <code class="highlight-val">user123</code> (role: user)<br>
+            • Admin user: <code class="highlight-val">admin</code> / <code class="highlight-val">admin123</code> (role: admin)
+          </div>
+          <button id="loginBtn" class="btn btn-primary" style="width: 100%">
+            Login with OAuth 2.0 (PKCE)
+          </button>
+        </div>
+        
+        <div id="authPanel" style="display: none;">
+          <div class="user-info-bar">
+            <div class="user-details">
+              <span class="user-name" id="profileName">-</span>
+              <span class="user-role-badge" id="profileRole">user</span>
+            </div>
+            <button id="logoutBtn" class="btn btn-danger btn-outline">Logout</button>
+          </div>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0;">
+            Successfully authenticated. Below you can inspect the PKCE parameters used and current token payload.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Flow Visualizer -->
+      <div class="card">
+        <h3 class="card-title">🔁 PKCE Flow Steps</h3>
+        
+        <div class="flow-step" id="step1">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <div class="step-title">Generate PKCE Keys (Client-side)</div>
+            <div class="step-desc">Generated random <code>code_verifier</code> and computed its SHA-256 <code>code_challenge</code>.</div>
+          </div>
+        </div>
+        
+        <div class="flow-step" id="step2">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <div class="step-title">Authorization Request</div>
+            <div class="step-desc">Redirect to Auth Server sending <code>code_challenge</code> & <code>code_challenge_method=S256</code>.</div>
+          </div>
+        </div>
+        
+        <div class="flow-step" id="step3">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <div class="step-title">Receive Auth Code</div>
+            <div class="step-desc">User logs in, Auth Server matches credentials and redirects back with temporary <code>code</code>.</div>
+          </div>
+        </div>
+        
+        <div class="flow-step" id="step4">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <div class="step-title">Token Exchange (POST /oauth/token)</div>
+            <div class="step-desc">Client exchanges <code>code</code> + original <code>code_verifier</code> for the access token. Server validates them.</div>
+          </div>
+        </div>
+        
+        <div class="flow-step" id="step5">
+          <div class="step-number">5</div>
+          <div class="step-content">
+            <div class="step-title">Access Secured API</div>
+            <div class="step-desc">Send HTTP requests to backend with <code>Authorization: Bearer &lt;token&gt;</code>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Column: API Tester & Cryptography Debugger -->
+    <div>
+      <!-- API Tester -->
+      <div class="card">
+        <h3 class="card-title">⚡ API Resource Server Tester</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <button id="btnHealth" class="btn btn-api unsecured">
+            <span class="method">GET</span> /api/health <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: auto;">(Unsecured)</span>
+          </button>
+          
+          <button id="btnProfile" class="btn btn-api secured">
+            <span class="method">GET</span> /api/user/profile <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: auto;">(Secured)</span>
+          </button>
+          
+          <button id="btnSettings" class="btn btn-api secured">
+            <span class="method">GET</span> /api/user/settings <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: auto;">(Secured)</span>
+          </button>
+          
+          <button id="btnData" class="btn btn-api secured">
+            <span class="method">GET</span> /api/data <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: auto;">(Secured)</span>
+          </button>
+          
+          <button id="btnAdmin" class="btn btn-api role-based">
+            <span class="method">GET</span> /api/admin/dashboard <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: auto;">(Role: admin)</span>
+          </button>
+        </div>
+        
+        <div style="margin-top: 1.5rem;">
+          <div id="resStatus" class="response-status status-ok" style="display: none;">
+            <span id="statusCode">200 OK</span>
+          </div>
+          <div class="code-container">
+            <code id="apiResponse">Click an API endpoint above to trigger a request...</code>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Crypto Debugger & educational tabs -->
+      <div class="card">
+        <div class="tab-container">
+          <div class="tab active" id="tabSession">Session Details</div>
+          <div class="tab" id="tabEducation">How PKCE Works</div>
+        </div>
+        
+        <!-- Session details view -->
+        <div id="viewSession">
+          <div style="margin-bottom: 1rem;">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Code Verifier:</span>
+            <div class="code-container" style="padding: 0.5rem; font-size: 0.8rem; margin-top: 0.25rem;">
+              <code id="debugVerifier" class="highlight-val">None generated</code>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 1rem;">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Code Challenge (S256):</span>
+            <div class="code-container" style="padding: 0.5rem; font-size: 0.8rem; margin-top: 0.25rem;">
+              <code id="debugChallenge" class="highlight-val">None computed</code>
+            </div>
+          </div>
+          
+          <div>
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Decoded Access Token:</span>
+            <div class="code-container" style="padding: 0.5rem; font-size: 0.8rem; margin-top: 0.25rem; max-height: 180px;">
+              <code id="debugJwt">No token loaded</code>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Educational view -->
+        <div id="viewEducation" style="display: none;" class="educational-box">
+          <p>
+            <strong>PKCE</strong> (Proof Key for Code Exchange) to zabezpieczenie chroniące aplikacje SPA/mobilne przed przechwyceniem kodu autoryzacyjnego.
+          </p>
+          <ol style="padding-left: 1.25rem; margin-bottom: 1rem; font-size: 0.85rem;">
+            <li style="margin-bottom: 0.5rem;">
+              Klient generuje losowy sekret <code>code_verifier</code> (min. 43 znaki).
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              Klient tworzy skrót SHA-256 z tego weryfikatora i koduje go jako Base64URL, uzyskując <code>code_challenge</code>.
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              Podczas przekierowania logowania klient wysyła wyzwanie (challenge) do serwera autoryzacji. Serwer zapamiętuje wyzwanie.
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              Po zalogowaniu klient otrzymuje kod autoryzacyjny i odsyła go na endpoint <code>/oauth/token</code> wraz z <strong>oryginalnym</strong> weryfikatorem <code>code_verifier</code>.
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              Serwer haszuje otrzymany <code>code_verifier</code> i porównuje go z zapisanym wyzwaniem. Token jest wydawany tylko przy zgodności.
+            </li>
+          </ol>
+          <p style="font-size: 0.85rem; margin-bottom: 0;">
+            Dzięki temu potencjalny włamywacz, który przechwyciłby kod w punkcie 3, nie może go wymienić na token, ponieważ nie zna sekretu <code>code_verifier</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <script src="app.js"></script>
+</body>
+</html>

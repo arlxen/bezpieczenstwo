@@ -1,0 +1,14 @@
+{
+  "name": "oauth2-pkce-demo",
+  "version": "1.0.0",
+  "description": "Simple OAuth 2.0 PKCE demo app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
